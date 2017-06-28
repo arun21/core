@@ -154,6 +154,7 @@ class FilesPlugin extends ServerPlugin {
 		$this->server->on('afterBind', [$this, 'sendFileIdHeader']);
 		$this->server->on('afterWriteContent', [$this, 'sendFileIdHeader']);
 		$this->server->on('afterMethod:GET', [$this,'httpGet']);
+		$this->server->on('method:GET', [$this,'redirect']);
 		$this->server->on('afterMethod:GET', [$this, 'handleDownloadToken']);
 		$this->server->on('afterResponse', function($request, ResponseInterface $response) {
 			$body = $response->getBody();
@@ -218,6 +219,22 @@ class FilesPlugin extends ServerPlugin {
 		}
 	}
 
+	function redirect(RequestInterface $request, ResponseInterface $response) {
+		// Only handle valid files
+		$node = $this->tree->getNodeForPath($request->getPath());
+		if (!($node instanceof File)) {
+			return;
+		}
+
+		$redirect = $node->getDirectDownload();
+		if (is_string($redirect) && $redirect !== '') {
+			$response->setHeader('Location', $redirect);
+			$response->setStatus(302);
+			return false;
+		}
+
+		return;
+	}
 	/**
 	 * Add headers to file download
 	 *
